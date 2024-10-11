@@ -1,5 +1,1 @@
-@wait_for_element_to_be_clickable(By.LINK_TEXT, "Sign In")
-# def sign_in(clickable_element):
-#     driver.execute_script("arguments[0].click()", clickable_element)
-    
-# sign_in()
+linkedin_jobs = "https://www.linkedin.com/jobs/search/?currentJobId=4024184607&distance=25&f_AL=true&geoId=104116203&keywords=python%20developer&origin=JOB_SEARCH_PAGE_JOB_FILTER&refresh=true"
