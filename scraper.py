@@ -1,6 +1,7 @@
 import os
 import time
 import re
+from bs4 import BeautifulSoup
 from termcolor import colored
 from dotenv import load_dotenv
 from selenium import webdriver
@@ -33,7 +34,6 @@ print(EMAIL)
 
 linkedin_home = "https://www.linkedin.com/home"
 linkedin_jobs = "https://www.linkedin.com/jobs/search/?distance=25&f_AL=true&geoId=104116203&keywords=python%20developer&origin=JOB_SEARCH_PAGE_JOB_FILTER"
-
 
 
 # FUUUUUUUUUUUCK I really want this decorator to work, but its being a pain in the dick. fuck it, whatever.
@@ -113,9 +113,30 @@ def navigate_to_jobs_page():
         except TimeoutException:
             print("Desired url was not rended within the time limit")
 
+def get_next_button_id():
 
-# #main > div > div.scaffold-layout__list-detail-inner.scaffold-layout__list-detail-inner--grow > div.scaffold-layout__list > div > ul
+    
+    page_source = driver.page_source
+    
+    soup = BeautifulSoup(page_source, "html.parser")
+    
+    next_button = soup.find_all(attrs={"aria-label" : "View next page" })
 
+    attribute = None
+    
+    for id in next_button:
+        attribute = id.get('id')
+        
+    if attribute:
+    
+        print(f'NEXT BUTTON ID: {attribute}')
+        return attribute    
+    else:
+        print("No ID Found")
+        return None    
+    
+def get_job_count():
+    pass
 
 def validate_jobs_page():
     try:
@@ -156,7 +177,10 @@ def scroll_in_container(container):
 def get_jobs_links():
     if validate_jobs_page():
         counter = 0
-        try:
+        job_storage = {}
+    try:
+        while True:
+
             container = driver.find_element(
                 By.CSS_SELECTOR, "div.jobs-search-results-list"
             )
@@ -164,26 +188,40 @@ def get_jobs_links():
 
             jobs = driver.find_elements(By.CSS_SELECTOR, "a.job-card-list__title")
 
-            job_storage = {}
             for job in jobs:
                 counter += 1
-                job_title = job
+                job_title_element = job.text
                 job_link = job.get_attribute("href")
-                print(colored(f"Job Title: {job_title.text}", "green"))
+                print(colored(f"Job Title: {job_title_element}", "green"))
                 print(colored(f"Job Link: {job_link}", "blue"))
                 print(colored(counter, "red"))
+
+                job_storage[job_title_element] = job_link
+            
+            next_button_id = get_next_button_id()
+            if next_button_id:
+                next_button = WebDriverWait(driver, 10).until(
+                    EC.element_to_be_clickable((By.ID, next_button_id))
+                )
                 
-                job_storage[job_title.text] = job_link
-            pprint(job_storage)    
-            return job_storage    
-                
-        except Exception as error:
-            print(f"Error while getting links: {error}")
-            raise error
+                next_button.click()
+            else:
+                WebDriverWait(driver, 10).until(EC.staleness_of(next_button))
+                print("No more pages to load")
+                break
+                    
+           
+
+    except Exception as error:
+        print(f"Error while getting links: {error}")
+        raise error
+
+    pprint(f"Jobs Links Dict: {job_storage}")
+
+    return job_storage
 
 
 init_sign_in()
-# check_if_homepage_and_navigate_to_jobs()
 navigate_to_jobs_page()
 get_jobs_links()
 
