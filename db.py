@@ -27,7 +27,7 @@ def insert_job(job_url):
     try:
         session.commit()
     except:
-        session.rollback()  #Rollback if job is already in the DB
+        session.rollback() 
         
 def get_unapplied_jobs():
     return session.query(Job).filter_by(applied=False).all()

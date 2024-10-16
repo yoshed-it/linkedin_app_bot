@@ -177,7 +177,8 @@ def scroll_in_container(container):
 def get_jobs_links():
     if validate_jobs_page():
         counter = 0
-        job_storage = {}
+        # job_storage = {}
+        job_storage = []
     try:
         while True:
 
@@ -190,13 +191,13 @@ def get_jobs_links():
 
             for job in jobs:
                 counter += 1
-                job_title_element = job.text
+                # job_title_element = job.text
                 job_link = job.get_attribute("href")
-                print(colored(f"Job Title: {job_title_element}", "green"))
-                print(colored(f"Job Link: {job_link}", "blue"))
-                print(colored(counter, "red"))
-
-                job_storage[job_title_element] = job_link
+                # print(colored(f"Job Title: {job_title_element}", "green"))
+                # print(colored(f"Job Link: {job_link}", "blue"))
+                # print(colored(counter, "red"))
+                job_storage.append(job_link)
+                # job_storage[job_title_element] = job_link
             
             next_button_id = get_next_button_id()
             if next_button_id:
@@ -209,20 +210,23 @@ def get_jobs_links():
                 WebDriverWait(driver, 10).until(EC.staleness_of(next_button))
                 print("No more pages to load")
                 break
-                    
-           
 
     except Exception as error:
         print(f"Error while getting links: {error}")
         raise error
 
-    pprint(f"Jobs Links Dict: {job_storage}")
+    # pprint(f"Jobs Links Dict: {job_storage}")
 
     return job_storage
 
-
-init_sign_in()
-navigate_to_jobs_page()
-get_jobs_links()
+def apply_to_jobs():
+    pass
+    
+    
+    
+    
+# init_sign_in()
+# navigate_to_jobs_page()
+# get_jobs_links()
 
 # driver.quit()
