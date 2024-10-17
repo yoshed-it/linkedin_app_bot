@@ -11,16 +11,24 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import NoSuchElementException
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.chrome.options import Options
-from pprint import pprint
+import json
+import shutil
+
+
+
+# profile_dir = os.path.join(os.getcwd(), "chrome_profile")
 
 
 chrome_options = Options()
 chrome_options.add_experimental_option("detach", True)
-chrome_options.add_argument("--incognito")
+# chrome_options.add_argument("--incognito")
 chrome_options.add_argument("start-maximized")
 chrome_options.add_argument("disable-infobars")
 chrome_options.add_argument("--disable-extensions")
 # chrome_options.add_argument("--headless")
+# chrome_options.add_argument(f"--user-data-dir={profile_dir}")
+
+    
 
 driver = webdriver.Chrome(options=chrome_options)
 
@@ -44,43 +52,77 @@ linkedin_jobs = "https://www.linkedin.com/jobs/search/?distance=25&f_AL=true&geo
 # sign_in()
 
 
+# def save_cookies():
+#     cookies = driver.get_cookies()
+#     print(colored(f"ME WANT COOKIES {cookies}", "red"))
+#     if cookies:
+#         print(colored("saving cookies!", "green"))
+#         with open("cookies.json", "w") as file:
+#             json.dump(cookies, file)
+#     else:
+#         print(colored("no cookies to be saved", "red"))
+
+
+# def load_cookies():
+#     if "cookies.json" in os.listdir():
+#         with open("cookies.json", "r") as file:
+#             cookies = json.load(file)
+#         for cookie in cookies:
+#             driver.add_cookie(cookie)
+#     else:
+#         print("No Cookies File Found")
+
+#     driver.refresh()
+
+# def delete_cookies():
+#     if "cookies.json" in os.listdir():
+#         os.remove("cookies.json")
+#     else:
+#         print("Files Doesnt Exist")
+        
+
+
 def init_sign_in():
-    while driver.current_url != linkedin_home:
-        driver.get(linkedin_home)
+    driver.get(linkedin_home)  # Directly navigate to LinkedIn home
+    
+    # If you're already on the feed page (indicating you're logged in)
+    # if driver.current_url == linkedin_home:
+    #     print("Already on LinkedIn home page, skipping login.")
+    #     return
+        
+    try:
+        sign_in_link = WebDriverWait(driver, 15).until(
+            EC.element_to_be_clickable((By.LINK_TEXT, "Sign in"))
+        )
+        driver.execute_script("arguments[0].click()", sign_in_link)
 
-        if driver.current_url == linkedin_home:
-            try:
-                sign_in_link = WebDriverWait(driver, 15).until(
-                    EC.element_to_be_clickable((By.LINK_TEXT, "Sign in"))
+        if EMAIL is None or PASSWORD is None:
+            raise ValueError(
+                "EMAIL or PASSWORD is not set, check your .env file, foo."
+            )
+
+        driver.find_element(By.CSS_SELECTOR, "#username").send_keys(EMAIL)
+        driver.find_element(By.CSS_SELECTOR, "#password").send_keys(PASSWORD)
+
+        secondary_sign_in = WebDriverWait(driver, 10).until(
+            EC.element_to_be_clickable(
+                (
+                    By.CSS_SELECTOR,
+                    "#organic-div form div.login__form_action_container button",
                 )
-                driver.execute_script("arguments[0].click()", sign_in_link)
+            )
+        )
+        driver.execute_script("arguments[0].click()", secondary_sign_in)
+        return
 
-                if EMAIL is None or PASSWORD is None:
-                    raise ValueError(
-                        "EMAIL or PASSWORD is not set, check your .env file, foo."
-                    )
-
-                driver.find_element(By.CSS_SELECTOR, "#username").send_keys(EMAIL)
-                driver.find_element(By.CSS_SELECTOR, "#password").send_keys(PASSWORD)
-
-                secondary_sign_in = WebDriverWait(driver, 10).until(
-                    EC.element_to_be_clickable(
-                        (
-                            By.CSS_SELECTOR,
-                            "#organic-div form div.login__form_action_container button",
-                        )
-                    )
-                )
-                driver.execute_script("arguments[0].click()", secondary_sign_in)
-                return
-
-            except NoSuchElementException as error:
-                raise NoSuchElementException(
-                    f"Cant find element. Details: {str(error)}"
-                )
-            except Exception as error:
-                print(f"Error during sign-in {error}")
-                return
+    except NoSuchElementException as error:
+        raise NoSuchElementException(
+            f"Cant find element. Details: {str(error)}"
+        )
+    except Exception as error:
+        print(f"Error during sign-in {error}")
+        return
+        
 
 
 def validate_home():
@@ -113,30 +155,33 @@ def navigate_to_jobs_page():
         except TimeoutException:
             print("Desired url was not rended within the time limit")
 
-def get_next_button_id():
 
-    
+def get_button_id(attribute_args):
+
     page_source = driver.page_source
-    
+
     soup = BeautifulSoup(page_source, "html.parser")
-    
-    next_button = soup.find_all(attrs={"aria-label" : "View next page" })
+
+    button = soup.find_all(attrs=attribute_args)
 
     attribute = None
-    
-    for id in next_button:
-        attribute = id.get('id')
-        
+
+    for id in button:
+        attribute = id.get("id")
+
     if attribute:
-    
-        print(f'NEXT BUTTON ID: {attribute}')
-        return attribute    
+
+        print(f"BUTTON ID: {attribute}")
+        return attribute
     else:
-        print("No ID Found")
-        return None    
-    
+        print(f"No ID Found\n At URL:{driver.current_url}")
+        
+        return None
+
+
 def get_job_count():
     pass
+
 
 def validate_jobs_page():
     try:
@@ -198,13 +243,13 @@ def get_jobs_links():
                 # print(colored(counter, "red"))
                 job_storage.append(job_link)
                 # job_storage[job_title_element] = job_link
-            
-            next_button_id = get_next_button_id()
+
+            next_button_id = get_button_id({"aria-label": "View next page"})
             if next_button_id:
                 next_button = WebDriverWait(driver, 10).until(
                     EC.element_to_be_clickable((By.ID, next_button_id))
                 )
-                
+
                 next_button.click()
             else:
                 WebDriverWait(driver, 10).until(EC.staleness_of(next_button))
@@ -219,14 +264,57 @@ def get_jobs_links():
 
     return job_storage
 
-def apply_to_jobs():
-    pass
+
+test_job_url = "https://www.linkedin.com/jobs/search/?currentJobId=4036746501&distance=25&f_AL=true&f_WT=3&geoId=104116203&keywords=python%20developer&origin=JOBS_HOME_KEYWORD_HISTORY&refresh=true"
+test_job_title = "Tech Lead, Machine Learning Engineer, TikTok Recommendation"
+
+
+def open_new_tab(job_url):
+    driver.execute_script(f"window.open('{job_url}', '_blank');")
+    time.sleep(2)
     
+    driver.switch_to.window(driver.window_handles[-1])
+    print(f"swtiched to a new window at {driver.current_url}")
     
+def close_tab():
+    driver.close()
+    driver.switch_to.window(driver.window_handles[0])    
+
+
+def apply_to_jobs(job_url, job_title):
+
+    quick_apply_button_id = driver.find_element(By.CSS_SELECTOR, "jobs-apply-button artdeco-button artdeco-button--3 artdeco-button--primary ember-view")
+
+
+    if driver.current_url == job_url:
+        try:
+            quick_apply_button = WebDriverWait(driver, 20).until(
+                EC.element_to_be_clickable((By.ID, quick_apply_button_id))
+            )
+            print(
+                f"Pretending to click on {quick_apply_button} Button with the id of: {quick_apply_button_id}"
+            )
+        except Exception as error:
+            print(f"Error while getting links: {error}")
+            raise error
+    time.sleep(20)
     
-    
-# init_sign_in()
-# navigate_to_jobs_page()
+
+
+init_sign_in()
+navigate_to_jobs_page()
 # get_jobs_links()
 
 # driver.quit()
+
+open_new_tab(test_job_url)
+
+apply_to_jobs(test_job_url, test_job_title)
+
+
+
+# if os.path.exists(profile_dir):
+#     os.rmdir(profile_dir)
+#     print("Profile directory deleted after session.")
+# else:
+#     print("No profile directory found to delete.")

@@ -2,7 +2,7 @@ from selenium import webdriver
 import db
 import scraper
 
-driver = webdriver.Chrome()
+# driver = webdriver.Chrome()
 
 database = db.create_table()
 
@@ -13,8 +13,10 @@ database = db.create_table()
 
 # for job in job_links:
 #     database = db.insert_job(job)
-print(database)
+full_job_list = db.get_job_list()
 
+for job in full_job_list:
+    print(job)
 
 
 # scraper.get_jobs_links()
