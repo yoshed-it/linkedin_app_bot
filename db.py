@@ -52,4 +52,4 @@ def get_job_list():
     return session.query(Job).all()
 
 def clear_job_listings():
-    return session.dr
+    return session

@@ -1,3 +1,1 @@
- # if driver.current_url == linkedin_home:
-    #     print("Already on LinkedIn home page, skipping login.")
-    #     return
+    # adjusted_quick_apply_button_id = quick_apply_button_id
